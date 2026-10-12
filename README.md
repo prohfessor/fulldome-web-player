@@ -1,70 +1,63 @@
 # Fulldome Web Player
 
-Web renderer for playing fulldome and 360° video on a planetarium dome.
-It is designed to run in Chromium/JCEF and is controlled by the
-[fulldomeplayer](https://github.com/prohfessor/fulldomeplayer) Java application.
+Веб-плеер для показа fulldome- и 360°-видео на куполе планетария. Работает в Chromium/JCEF и управляется Java-приложением [fulldomeplayer](https://github.com/prohfessor/fulldomeplayer).
 
-## Features
+## Возможности
 
-- fulldome and equirectangular 360° video projection;
-- playlist loading from a URL query parameter;
-- playback range, seeking, mute and projection controls;
-- rotation, pitch, vertical and near/far adjustments;
-- status events sent back to the Java controller through JCEF queries;
-- direct browser operation for renderer development and testing.
+- проекция fulldome- и эквидистантного 360°-видео;
+- загрузка плейлиста из параметра URL;
+- воспроизведение заданного временного фрагмента и перемотка;
+- управление звуком, типом проекции, поворотом и смещением;
+- отправка состояния в Java через JCEF queries;
+- автономный запуск в обычном Chromium для разработки и диагностики.
 
-The renderer preserves the source projection. It does not normalize or convert
-360° and fulldome frames.
+Плеер сохраняет исходную проекцию кадра и не выполняет «нормализацию» fulldome или 360°.
 
-## Serving with nginx
+## Установка с nginx
 
-Place this repository in the nginx document root, for example:
+Разместите репозиторий в document root nginx, например:
 
 ```text
 E:\www\player
 ```
 
-Then open:
+Откройте:
 
 ```text
 http://localhost/player/index.html?playlist=test.js
 ```
 
-The playlist path is resolved relative to `index.html`. Media paths inside a
-playlist are resolved by the browser relative to the web-server document root.
-Do not open `index.html` through `file://`: playlist loading uses `fetch()` and
-requires an HTTP server.
+Путь плейлиста вычисляется относительно `index.html`, а пути видео внутри плейлиста — относительно document root веб-сервера. Не открывайте страницу через `file://`: загрузка плейлиста использует `fetch()` и требует HTTP-сервер.
 
-## Playlist format
+## Формат плейлиста
 
-UTF-8 text, one media item per line:
+Текст UTF-8, одна запись на строку:
 
 ```text
-begin,end,rotation,pitch,flags,/path/to/video.webm
+начало,конец,поворот,наклон,флаги,/путь/к/видео.webm
 ```
 
-Example:
+Пример:
 
 ```text
-0,0,0,0,f,/video/show.webm # duration=615.24 # comment=Fulldome show
+0,0,0,0,f,/video/show.webm # duration=615.24 # comment=Fulldome-программа
 ```
 
-The Java editor owns playlist persistence and metadata. The web player ignores
-inline metadata after `#` except for the six playback fields before it.
+Метаданные после `#` сохраняет Java-редактор. Web-player использует только шесть полей воспроизведения перед метаданными.
 
-Important flags:
+Основные флаги:
 
 - `f` — fulldome;
 - `o` — 360°;
-- `m` — muted;
-- `s` — start immediately;
-- `p` — pause marker;
-- `h<number>` — vertical offset;
-- `n<number>` — near/far offset.
+- `m` — без звука;
+- `s` — запускать сразу;
+- `p` — маркер паузы;
+- `h<number>` — вертикальное смещение;
+- `n<number>` — приближение/удаление.
 
-## Controller protocol
+## Протокол управления
 
-Java calls these global browser functions:
+Java вызывает глобальные функции браузера:
 
 ```text
 videoNext(...)
@@ -81,34 +74,31 @@ setRotateUp(...)
 setRotateFB(...)
 ```
 
-The renderer sends JCEF queries in this form:
+Web-player отправляет Java события:
 
 ```text
 cmd:onload;
-cmd:videoinfo;<duration>
-cmd:currenttime;<seconds>
+cmd:videoinfo;<длительность>
+cmd:currenttime;<секунды>
 cmd:videoend;
-cmd:error;<message>
+cmd:error;<сообщение>
 ```
 
-Outside JCEF, `window.cefQuery` is optional, so the renderer can also be tested
-in a regular Chromium browser.
+В обычном браузере `window.cefQuery` отсутствует; это предусмотрено и не мешает локальной проверке renderer-а.
 
-## Source structure
+## Структура проекта
 
-- `index.html` — entry point and playlist bootstrap;
-- `libs/FullDomeRenderer.js` — canonical renderer and player implementation;
-- `libs/FullDomeRendererPlayer.js` — legacy compatibility filename; kept identical;
-- `libs/DomeMaster.js` — dome projection support;
-- `libs/common.js` — loader and shared browser utilities;
-- `libs/three` — vendored Three.js runtime and loaders;
-- `libs/draco` — vendored Draco decoder;
-- `scenes/cubes.js` — orientation test scene;
-- `test.js` — example playlist for a local media tree.
+- `index.html` — минимальная HTML-страница и подключение скриптов;
+- `libs/FullDomeRenderer.js` — единственная реализация проекции и воспроизведения;
+- `libs/FullDomeRendererPlayer.js` — запуск приложения, загрузка плейлиста и JCEF-мост;
+- `libs/DomeMaster.js` — поддержка купольной проекции;
+- `libs/common.js` — общие браузерные утилиты;
+- `libs/three` — локальная копия Three.js и загрузчиков;
+- `libs/draco` — локальный Draco decoder;
+- `scenes/cubes.js` — тестовая сцена ориентации;
+- `test.js` — пример плейлиста для локальной медиатеки.
 
-## Verification
-
-Run from PowerShell:
+## Проверка
 
 ```powershell
 node --check .\libs\FullDomeRenderer.js
@@ -117,10 +107,8 @@ node --check .\libs\common.js
 node --check .\scenes\cubes.js
 ```
 
-`FullDomeRenderer.js` is canonical. Keep
-`FullDomeRendererPlayer.js` byte-for-byte identical when updating it.
+Также рекомендуется открыть `index.html?playlist=test.js` через nginx и проверить получение событий в консоли браузера.
 
-## License
+## Лицензия
 
-Project-specific code is available under the BSD 3-Clause License. Vendored
-third-party libraries remain subject to their respective upstream licenses.
+Код проекта распространяется по лицензии BSD 3-Clause. Сторонние библиотеки в `libs` остаются под лицензиями соответствующих авторов.
