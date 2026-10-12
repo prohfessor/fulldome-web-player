@@ -1,0 +1,174 @@
+﻿<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            body {
+                margin:     0px;
+                overflow:   hidden;
+                font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+
+                position:   absolute;
+                top:        0;
+                left:       0;
+                right:      0;
+                bottom:     0;
+
+                background: #aaaaaa;
+            }
+
+            canvas {
+                width:      100%;
+                height:     100%;
+                cursor:     crosshair;
+            }
+
+.random-video {
+  display: block;
+  background: red;
+  width: 300px;
+  height: 180px;
+  position: absolute;
+  visibility: hidden;
+  --opacity-time: 1;
+}
+
+.random-video > video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  margin: 0;
+  border: 0;
+  opacity: 0;
+  transition: all calc(var(--opacity-time) * 1ms) linear;
+}
+
+        </style>
+        <script src="libs/three/three.js"></script>
+        <script src="libs/common.js"></script>
+
+        <script>
+		var curVideoEl;
+		var oldVideoEl;
+		var curVideoNum=0;
+		var vtexture;
+		var flagStopVideo = false; // видео остановлено
+		var numVideo=0;
+
+function sendMessage(mess) {
+//	console.log("index.html: sendMessage: "+mess);
+  // Results in a call to the OnQuery method in binding_test.cpp
+  if(window.cefQuery) window.cefQuery({
+    request: mess,
+    onSuccess: function(response) {
+//      document.getElementById('result').value = 'Response: '+response;
+//	console.log("success sendMessage");
+    },
+//    onFailure: function(error_code, error_message) {console.log("error in index.html: sendMessage: "+mess+" "+error_code+" "+error_message);}
+  });
+}
+
+function setCount() {
+	console.log("sendMessage setCount");
+
+	sendMessage("cmd:count;"+i_slide);
+}
+
+function setTimes(times) {
+//	console.log("sendMessage times: "+ times);
+
+	sendMessage("cmd:times;"+times);
+}
+
+
+
+
+async function readText(path) {
+    const response = await fetch(path, {cache: "no-store"});
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${path}`);
+    return response.text();
+}
+
+async function resolveVideoSource() {
+    const params = new URLSearchParams(window.location.search);
+    const playlist = params.get("playlist");
+    if (playlist) return readText(playlist);
+
+    const raw = window.location.search.length > 1
+        ? decodeURIComponent(window.location.search.substring(1))
+        : "test.js";
+    if (raw.toLowerCase().endsWith(".js") || raw.toLowerCase().endsWith(".dome")) {
+        return readText(raw.replace(/\\/g, "/"));
+    }
+
+    const normalized = raw.replace(/\\/g, "/");
+    const webRoot = normalized.toLowerCase().indexOf("/www/");
+    const url = webRoot >= 0 ? normalized.substring(webRoot + 4) : normalized;
+    return `0,0,0,0,,${url.startsWith("/") ? url : "/" + url}`;
+}
+
+const playlistPromise = resolveVideoSource();
+
+
+            var resourcesLeft = 0;
+            function include(library, async) {
+                        resourcesLeft++;
+                        loadResource(library, async, function() {
+                            resourcesLeft--;
+                            console.log("Loaded", library);
+                            if(resourcesLeft == 0) {
+                                playlistPromise.then(function(tvideos) {
+                                    if (!tvideos.trim()) throw new Error("Плейлист пуст");
+                                    videos = new setVideos(tvideos);
+                                    startAnimation();
+                                }).catch(function(error) {
+                                    console.error("Не удалось запустить плеер:", error);
+                                    sendMessage("cmd:error;" + error.message);
+                                });
+                            }
+                        });
+            }
+
+
+                include("libs/FullDomeRenderer.js");
+                include("scenes/cubes.js"); // тестовые кубики. Синий сверху, красный спереди, желтый слева, зеленый справа.
+
+        </script>
+    </head>
+    <body>
+
+<!--
+		<video id="video" loop crossOrigin="anonymous" playsinline style="display:none">
+			<source src="videos/earth_in_space.webm" type='video/mp4'>
+		</video>
+-->
+<div class="random-video"></div>
+
+        <script>
+	   window.addEventListener("load", function () {
+		document.querySelector('body').onkeydown=nextSlide;
+		document.querySelector('body').onkeyup=keyup;
+		sendMessage("cmd:onload;");
+	   });
+            var query = parseQuery();
+
+var is=0;
+
+//getSlidesSubts();
+
+
+        </script>
+
+
+
+
+
+
+
+
+
+
+    </body>
+</html>
+
